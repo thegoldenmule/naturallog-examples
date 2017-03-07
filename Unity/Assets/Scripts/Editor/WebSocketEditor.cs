@@ -1,17 +1,17 @@
-﻿using System.Threading;
+﻿using System;
+using NaturalLog;
 using UnityEditor;
 using UnityEngine;
-using WebSocketSharp;
+using Random = UnityEngine.Random;
 
+/// <summary>
+/// For testing naturallog-server.
+/// </summary>
 public class WebSocketEditor : EditorWindow
 {
-    private static readonly string[] _Levels = {
-        "Info",
-        "Debug",
-        "Warn",
-        "Error"
-    };
-
+    /// <summary>
+    /// Random messages.
+    /// </summary>
     private static readonly string[] _Messages =
     {
         "This is a short message!",
@@ -24,76 +24,80 @@ public class WebSocketEditor : EditorWindow
         "But neither can two great and powerful groups of nations take comfort from our present course -- both sides overburdened by the cost of modern weapons, both rightly alarmed by the steady spread of the deadly atom, yet both racing to alter that uncertain balance of terror that stays the hand of mankind's final war."
     };
 
-    private WebSocket _socket;
-    private string _uri = "ws://127.0.0.1:9999";
-    private bool _started = false;
+    /// <summary>
+    /// NaturalLogger implementation.
+    /// </summary>
+    private NaturalLogger _logger = new NaturalLogger();
 
+    /// <summary>
+    /// IP of the logger to use.
+    /// </summary>
+    private string _ip = "127.0.0.1";
+
+    /// <summary>
+    /// True if the connection has been started.
+    /// </summary>
+    private bool _started = false;
+    
+    /// <summary>
+    /// Opens the websocket editor.
+    /// </summary>
     [MenuItem("Windows/WebSocketEditor")]
     private static void Open()
     {
         GetWindow<WebSocketEditor>();
     }
 
+    /// <summary>
+    /// Called to open the editor.
+    /// </summary>
     private void OnEnable()
     {
         minSize = new Vector2(200, 200);
     }
 
+    /// <summary>
+    /// Called when the editor has been closed.
+    /// </summary>
     private void OnDisable()
     {
-        if (null != _socket)
-        {
-            _socket.Close();
-            _socket = null;
-        }
+
     }
 
+    /// <summary>
+    /// Called every frame to draw controls.
+    /// </summary>
     private void OnGUI()
     {
-        _uri = EditorGUILayout.TextField("URI", _uri);
+        _ip = EditorGUILayout.TextField("IP", _ip);
+        _logger.Identity = EditorGUILayout.TextField("Identity", _logger.Identity);
 
+        // button to start logging
         GUI.enabled = !_started;
         if (GUILayout.Button("Start"))
         {
             _started = true;
 
-            if (null != _socket)
-            {
-                _socket.Close();
-                _socket = null;
-            }
-
-            _socket = new WebSocket(_uri);
-            _socket.OnOpen += (sender, args) => Debug.Log("OnOpen");
-            _socket.OnError += (sender, args) => Debug.Log("OnError : " + args.Message);
-            _socket.OnClose += (sender, args) => Debug.Log("OnClose");
-            _socket.OnMessage += (sender, args) => Debug.Log("OnMessage");
-            _socket.Log.Level = LogLevel.Trace;
-            _socket.Connect();
+            _logger.Connect(_ip);
         }
 
+        // button to stop logging
         GUI.enabled = _started;
         if (GUILayout.Button("Stop"))
         {
             _started = false;
+            _logger.Disconnect();
         }
 
+        // if we are logging, log at a random rate
         if (_started && Random.Range(0, 100) > 95)
         {
-            // send
-            try
-            {
-                _socket.Send(
-                    "{" + _Levels[Random.Range(0, _Levels.Length - 1)] + "}:"
-                    + _Messages[Random.Range(0, _Messages.Length - 1)]);
-            }
-            catch
-            {
-                _socket.Close();
-                _socket = null;
+            var levels = (NaturalLogger.LogLevel[]) Enum.GetValues(typeof (NaturalLogger.LogLevel));
 
-                _started = false;
-            }
+            // log a random message at a random level
+            _logger.Log(
+                levels[Random.Range(0, levels.Length - 1)],
+                _Messages[Random.Range(0, _Messages.Length - 1)]);
         }
 
         Repaint();
