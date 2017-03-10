@@ -27,7 +27,7 @@ public class WebSocketEditor : EditorWindow
     /// <summary>
     /// NaturalLogger implementation.
     /// </summary>
-    private NaturalLogger _logger = new NaturalLogger();
+    private readonly NaturalLogger _logger = new NaturalLogger();
 
     /// <summary>
     /// IP of the logger to use.
@@ -54,6 +54,8 @@ public class WebSocketEditor : EditorWindow
     private void OnEnable()
     {
         minSize = new Vector2(200, 200);
+
+        _logger.OnDisconnected += Logger_OnDisconnected;
     }
 
     /// <summary>
@@ -61,7 +63,7 @@ public class WebSocketEditor : EditorWindow
     /// </summary>
     private void OnDisable()
     {
-
+        _logger.OnDisconnected -= Logger_OnDisconnected;
     }
 
     /// <summary>
@@ -101,5 +103,13 @@ public class WebSocketEditor : EditorWindow
         }
 
         Repaint();
+    }
+
+    /// <summary>
+    /// Called when the logger has disconnected.
+    /// </summary>
+    private void Logger_OnDisconnected()
+    {
+        _started = false;
     }
 }

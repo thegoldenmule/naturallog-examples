@@ -52,6 +52,11 @@ namespace NaturalLog
         }
 
         /// <summary>
+        /// Called when the logger has become disconnected.
+        /// </summary>
+        public event Action OnDisconnected;
+
+        /// <summary>
         /// Connects to an ip + port.
         /// </summary>
         /// <param name="ip"></param>
@@ -62,6 +67,13 @@ namespace NaturalLog
 
             _socket = new WebSocket(string.Format("ws://{0}:{1}", ip, port));
             _socket.OnOpen += (_, __) => Identify();
+            _socket.OnClose += (_, ___) =>
+            {
+                if (null != OnDisconnected)
+                {
+                    OnDisconnected();
+                }
+            };
             _socket.Log.Level = WebSocketSharp.LogLevel.Trace;
             _socket.ConnectAsync();
         }
